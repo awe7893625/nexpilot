@@ -9,8 +9,14 @@
 ## Install From Source
 
 ```bash
-git clone https://github.com/OWNER/nexpilot-public.git
-cd nexpilot-public
+git clone https://github.com/awe7893625/nexpilot-private-beta.git
+cd nexpilot-private-beta
+bash scripts/install.sh
+```
+
+## Manual Install From Source
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .

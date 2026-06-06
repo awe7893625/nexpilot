@@ -21,8 +21,17 @@ internal codebase.
 ## Quick Start
 
 ```bash
-git clone https://github.com/OWNER/nexpilot-public.git
-cd nexpilot-public
+git clone https://github.com/awe7893625/nexpilot-private-beta.git
+cd nexpilot-private-beta
+bash scripts/install.sh
+bash scripts/run-lan.sh
+```
+
+Manual install:
+
+```bash
+git clone https://github.com/awe7893625/nexpilot-private-beta.git
+cd nexpilot-private-beta
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -54,6 +63,9 @@ This binds to `127.0.0.1` only. For phone testing on the same Wi-Fi, run
 
 Read [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) before sharing this with
 testers.
+
+For a shorter tester handoff, use
+[docs/TESTER_QUICKSTART.md](docs/TESTER_QUICKSTART.md).
 
 ## What Is Not Included
 
