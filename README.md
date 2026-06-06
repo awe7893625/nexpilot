@@ -87,6 +87,18 @@ With a local server running on `127.0.0.1:8765` and token `test-token`:
 python3 scripts/smoke-terminal.py --url 'ws://127.0.0.1:8765/ws/terminal?token=test-token'
 ```
 
+## Publish To GitHub
+
+This project should be pushed as a private beta first:
+
+```bash
+bash scripts/publish-github.sh
+```
+
+The script refuses to continue if `gh` is not authenticated, reruns the
+prepublish gate, creates `awe7893625/nexpilot-private-beta` as a private repo if
+needed, and pushes `main`.
+
 ## License
 
 Private beta evaluation only. See [LICENSE](LICENSE).

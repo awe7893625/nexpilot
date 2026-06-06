@@ -8,6 +8,8 @@ cd nexpilot-private-beta
 bash scripts/install.sh
 ```
 
+The repo is private during beta. Testers need a GitHub invite before cloning.
+
 ## 2. Run
 
 For same-computer testing:

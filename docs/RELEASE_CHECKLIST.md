@@ -12,3 +12,5 @@ Before pushing or publishing:
   are not tracked.
 - [ ] Confirm README says public internet exposure is unsupported.
 - [ ] Confirm GitHub visibility with Rain before pushing.
+- [ ] Push private beta with `bash scripts/publish-github.sh`.
+- [ ] Verify GitHub Actions CI passes on `main`.
