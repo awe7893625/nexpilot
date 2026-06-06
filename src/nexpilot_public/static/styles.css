@@ -1,0 +1,151 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --panel: #111827;
+  --line: #334155;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --accent: #22c55e;
+  --danger: #f97316;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px max(14px, env(safe-area-inset-left)) 10px max(14px, env(safe-area-inset-right));
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.brand {
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.status {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status.online {
+  color: var(--accent);
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 12px;
+  background: #1f2937;
+  color: var(--text);
+}
+
+button:disabled {
+  opacity: 0.45;
+}
+
+.token-panel {
+  padding: 12px max(14px, env(safe-area-inset-left)) 12px max(14px, env(safe-area-inset-right));
+  border-bottom: 1px solid var(--line);
+  background: #111827;
+}
+
+.token-panel label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.token-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+input {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #020617;
+  color: var(--text);
+}
+
+.terminal-wrap {
+  min-height: 0;
+  padding: 0;
+}
+
+#terminal,
+#fallback {
+  width: 100%;
+  height: calc(100vh - 129px);
+  min-height: 320px;
+  background: #050816;
+}
+
+#fallback {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.xterm {
+  height: 100%;
+  padding: 10px;
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  button {
+    min-width: 92px;
+  }
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#111827" />
+    <title>NexPilot</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <div class="brand">NexPilot</div>
+          <div id="status" class="status">Disconnected</div>
+        </div>
+        <div class="actions">
+          <button id="connect" type="button">Connect</button>
+          <button id="disconnect" type="button" disabled>Disconnect</button>
+        </div>
+      </header>
+
+      <section id="tokenPanel" class="token-panel">
+        <label for="token">Access token</label>
+        <div class="token-row">
+          <input id="token" type="password" autocomplete="off" placeholder="Paste token" />
+          <button id="saveToken" type="button">Use</button>
+        </div>
+      </section>
+
+      <section class="terminal-wrap">
+        <div id="terminal"></div>
+        <pre id="fallback" hidden></pre>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

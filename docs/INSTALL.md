@@ -1,0 +1,47 @@
+# Install Guide
+
+## Requirements
+
+- macOS or Linux
+- Python 3.9+
+- A phone on the same Wi-Fi, or a private network path such as Tailscale
+
+## Install From Source
+
+```bash
+git clone https://github.com/OWNER/nexpilot-public.git
+cd nexpilot-public
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+## Run For Same-Computer Testing
+
+```bash
+nexpilot
+```
+
+Open the printed localhost URL in the computer browser.
+
+## Run For Phone On Same Wi-Fi
+
+```bash
+nexpilot --lan
+```
+
+Open the printed phone URL on the phone browser.
+
+## Run Over Tailscale
+
+1. Install Tailscale on the computer and phone.
+2. Sign both devices into the same tailnet.
+3. Run:
+
+```bash
+nexpilot --lan
+```
+
+4. Open `http://TAILSCALE_IP:8765/?token=...` on the phone.
+
+Do not publish this port directly to the public internet.
