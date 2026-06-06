@@ -5,8 +5,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import re
 import secrets
 import socket
+import time
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,9 +20,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .terminal import PtyTerminalSession, PtyUnsupportedError, TerminalConfig
+from .terminal import PtyUnsupportedError, TerminalConfig, create_terminal_session
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
 
 @dataclass(frozen=True)
@@ -29,11 +33,113 @@ class ServerConfig:
     token: str
     shell: str
     cwd: Path
+    idle_timeout: int = 900
+    history_limit: int = 200_000
+
+
+class ManagedTerminalSession:
+    """Keeps one shell alive across browser reconnects."""
+
+    def __init__(self, session_id: str, config: ServerConfig):
+        self.session_id = session_id
+        self.config = config
+        self.terminal = create_terminal_session(
+            TerminalConfig(shell=config.shell, cwd=config.cwd),
+            send_output=self._handle_output,
+        )
+        self.started_at = time.time()
+        self.last_seen_at = self.started_at
+        self.history: deque[str] = deque()
+        self.history_chars = 0
+        self.subscribers: set[asyncio.Queue[dict[str, Any]]] = set()
+        self.pump_task: asyncio.Task | None = None
+        self.idle_task: asyncio.Task | None = None
+        self.closed = False
+
+    def start(self) -> None:
+        self.terminal.start()
+        self.pump_task = asyncio.create_task(self._pump())
+
+    def subscribe(self) -> asyncio.Queue[dict[str, Any]]:
+        self.last_seen_at = time.time()
+        if self.idle_task is not None:
+            self.idle_task.cancel()
+            self.idle_task = None
+        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=256)
+        self.subscribers.add(queue)
+        return queue
+
+    def unsubscribe(self, queue: asyncio.Queue[dict[str, Any]]) -> None:
+        self.subscribers.discard(queue)
+        self.last_seen_at = time.time()
+        if not self.subscribers and not self.closed and self.idle_task is None:
+            self.idle_task = asyncio.create_task(self._close_after_idle())
+
+    async def _close_after_idle(self) -> None:
+        try:
+            await asyncio.sleep(max(10, self.config.idle_timeout))
+            if not self.subscribers:
+                await self.close("idle timeout")
+        except asyncio.CancelledError:
+            return
+
+    async def _pump(self) -> None:
+        try:
+            await self.terminal.pump_output()
+        except Exception as exc:
+            await self._broadcast({"type": "error", "error": f"terminal output failed: {exc}"})
+        finally:
+            self.closed = True
+            await self._broadcast({"type": "exit", "reason": "terminal exited"})
+
+    async def _handle_output(self, data: str) -> None:
+        if not data:
+            return
+        self.history.append(data)
+        self.history_chars += len(data)
+        while self.history_chars > self.config.history_limit and self.history:
+            self.history_chars -= len(self.history.popleft())
+        await self._broadcast({"type": "output", "data": data})
+
+    async def _broadcast(self, message: dict[str, Any]) -> None:
+        for queue in list(self.subscribers):
+            try:
+                queue.put_nowait(message)
+            except asyncio.QueueFull:
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                try:
+                    queue.put_nowait(message)
+                except asyncio.QueueFull:
+                    pass
+
+    def write(self, data: str) -> None:
+        self.last_seen_at = time.time()
+        self.terminal.write(data)
+
+    def resize(self, cols: int, rows: int) -> None:
+        self.last_seen_at = time.time()
+        self.terminal.resize(cols, rows)
+
+    async def close(self, reason: str = "closed") -> None:
+        if self.closed:
+            return
+        self.closed = True
+        if self.idle_task is not None:
+            self.idle_task.cancel()
+            self.idle_task = None
+        if self.pump_task is not None:
+            self.pump_task.cancel()
+        await self.terminal.close()
+        await self._broadcast({"type": "exit", "reason": reason})
 
 
 def make_app(config: ServerConfig) -> FastAPI:
     app = FastAPI(title="NexPilot Public Trial", version=__version__)
     app.state.config = config
+    app.state.sessions = {}
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     @app.middleware("http")
@@ -63,6 +169,12 @@ def make_app(config: ServerConfig) -> FastAPI:
             "shell": config.shell,
             "host": config.host,
             "port": config.port,
+            "terminal": {
+                "session_reconnect": True,
+                "idle_timeout": config.idle_timeout,
+                "history_limit": config.history_limit,
+                "windows_conpty": os.name == "nt",
+            },
         }
 
     @app.websocket("/ws/terminal")
@@ -73,15 +185,16 @@ def make_app(config: ServerConfig) -> FastAPI:
 
         await websocket.accept()
 
-        async def send_output(data: str) -> None:
-            await websocket.send_json({"type": "output", "data": data})
-
         try:
-            session = PtyTerminalSession(
-                TerminalConfig(shell=config.shell, cwd=config.cwd),
-                send_output=send_output,
-            )
-            session.start()
+            session_id = _clean_session_id(websocket.query_params.get("session"))
+            sessions: dict[str, ManagedTerminalSession] = app.state.sessions
+            reconnected = session_id in sessions and not sessions[session_id].closed
+            if reconnected:
+                session = sessions[session_id]
+            else:
+                session = ManagedTerminalSession(session_id, config)
+                session.start()
+                sessions[session_id] = session
         except PtyUnsupportedError as exc:
             await websocket.send_json({"type": "error", "error": str(exc)})
             await websocket.close(code=1011, reason="unsupported platform")
@@ -91,24 +204,48 @@ def make_app(config: ServerConfig) -> FastAPI:
             await websocket.close(code=1011, reason="session start failed")
             return
 
-        output_task = asyncio.create_task(session.pump_output())
+        queue = session.subscribe()
+        await websocket.send_json(
+            {
+                "type": "session",
+                "session": session.session_id,
+                "reconnected": reconnected,
+                "idle_timeout": config.idle_timeout,
+            }
+        )
+        if session.history:
+            await websocket.send_json({"type": "output", "data": "".join(session.history), "replay": True})
+
+        async def sender() -> None:
+            while True:
+                message = await queue.get()
+                await websocket.send_json(message)
+                if message.get("type") == "exit":
+                    return
+
+        sender_task = asyncio.create_task(sender())
         try:
             while True:
                 message = await websocket.receive_json()
                 msg_type = message.get("type")
                 if msg_type == "input":
                     session.write(str(message.get("data") or ""))
+                    await websocket.send_json({"type": "ack", "id": message.get("id")})
                 elif msg_type == "resize":
                     session.resize(int(message.get("cols") or 100), int(message.get("rows") or 32))
                 elif msg_type == "ping":
                     await websocket.send_json({"type": "pong"})
+                elif msg_type == "close_session":
+                    await session.close("client closed session")
+                    break
                 else:
                     await websocket.send_json({"type": "error", "error": f"unsupported message: {msg_type}"})
         except WebSocketDisconnect:
             pass
         finally:
-            output_task.cancel()
-            await session.close()
+            sender_task.cancel()
+            session.unsubscribe(queue)
+            await _prune_closed_sessions(app.state.sessions)
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
@@ -138,6 +275,18 @@ def websocket_token_valid(websocket: WebSocket, config: ServerConfig) -> bool:
     return bool(provided and secrets.compare_digest(provided, config.token))
 
 
+def _clean_session_id(raw: str | None) -> str:
+    if raw and SESSION_ID_PATTERN.fullmatch(raw):
+        return raw
+    return secrets.token_urlsafe(12)
+
+
+async def _prune_closed_sessions(sessions: dict[str, ManagedTerminalSession]) -> None:
+    for session_id, session in list(sessions.items()):
+        if session.closed and not session.subscribers:
+            sessions.pop(session_id, None)
+
+
 def _default_shell() -> str:
     if os.name == "nt":
         return os.environ.get("COMSPEC", "powershell.exe")
@@ -161,7 +310,17 @@ def build_config(args: argparse.Namespace) -> ServerConfig:
     token = args.token or os.environ.get("NEXPILOT_TOKEN") or secrets.token_urlsafe(24)
     shell = args.shell or os.environ.get("NEXPILOT_SHELL") or _default_shell()
     cwd = Path(args.cwd or os.environ.get("NEXPILOT_CWD") or Path.home()).expanduser()
-    return ServerConfig(host=host, port=port, token=token, shell=shell, cwd=cwd)
+    idle_timeout = int(args.idle_timeout or os.environ.get("NEXPILOT_IDLE_TIMEOUT") or 900)
+    history_limit = int(args.history_limit or os.environ.get("NEXPILOT_HISTORY_LIMIT") or 200_000)
+    return ServerConfig(
+        host=host,
+        port=port,
+        token=token,
+        shell=shell,
+        cwd=cwd,
+        idle_timeout=idle_timeout,
+        history_limit=history_limit,
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -172,6 +331,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--token", help="Access token. Default: generated at startup.")
     parser.add_argument("--shell", help="Shell command. Default: current user shell.")
     parser.add_argument("--cwd", help="Initial working directory. Default: home directory.")
+    parser.add_argument("--idle-timeout", type=int, help="Seconds to keep detached shells alive. Default: 900.")
+    parser.add_argument("--history-limit", type=int, help="Per-session replay history characters. Default: 200000.")
     return parser.parse_args(argv)
 
 
@@ -184,6 +345,7 @@ def print_startup(config: ServerConfig) -> None:
     print(f"  Bind:    {config.host}:{config.port}")
     print(f"  Shell:   {config.shell}")
     print(f"  CWD:     {config.cwd}")
+    print(f"  Detach:  {config.idle_timeout}s reconnect window")
     print("")
     print(f"Open: {local_url}")
     if config.host == "0.0.0.0":

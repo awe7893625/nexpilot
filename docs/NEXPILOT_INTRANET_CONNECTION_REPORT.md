@@ -165,11 +165,14 @@ bash scripts/run-lan.sh
 
 ## 8. 目前限制
 
-- 尚未支援 Windows public beta。
+- Windows 已有 private beta ConPTY path，但尚未完成 Windows 實機長時間驗證。
 - 尚未做實體手機長時間 soak。
 - 尚未提供 native installer。
 - 尚未提供公網 cloud relay。
-- 尚未達到 Termius 完整功能等級。
+- Terminal 已補 reconnect、output replay、heartbeat、batching、paste/copy/clear，
+  但尚未達到 Termius 完整功能等級。
+- Source beta 不能技術上阻止收件人複製；目前用 private invite、非轉讓條款、
+  per-tester package 與 checksum 降低亂轉傳風險。
 
 ## 9. GitHub 狀態
 
@@ -198,4 +201,3 @@ bash scripts/publish-github.sh
 ```text
 awe7893625/nexpilot-private-beta
 ```
-

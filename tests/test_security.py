@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-from nexpilot_public.server import ServerConfig, make_app, require_token
+from nexpilot_public.server import ServerConfig, _clean_session_id, make_app, require_token
 
 
 class DummyRequest:
@@ -50,3 +50,13 @@ def test_make_app_does_not_require_private_runtime_paths():
     route_paths = {route.path for route in app.routes}
     assert "/api/status" in route_paths
     assert "/ws/terminal" in route_paths
+
+
+def test_clean_session_id_accepts_safe_ids():
+    assert _clean_session_id("tester-session_01") == "tester-session_01"
+
+
+def test_clean_session_id_rejects_unsafe_ids():
+    cleaned = _clean_session_id("../secret")
+    assert cleaned != "../secret"
+    assert "/" not in cleaned

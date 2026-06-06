@@ -11,6 +11,16 @@ do not own or administer.
 
 Direct public internet exposure is not supported.
 
+Public cloud relay is not enabled in this private beta. Do not router
+port-forward this agent or place it behind an unaudited public tunnel.
+
+## Redistribution
+
+Tester access is non-transferable. Do not copy, mirror, upload, sublicense,
+sell, publish, or redistribute this repository or a tester package. Source
+access cannot technically prevent copying by a recipient, so beta distribution
+must stay private, invite-only, and per tester.
+
 ## Reporting Issues
 
 For private beta testers, report security issues directly to the repo owner.

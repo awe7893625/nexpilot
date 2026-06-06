@@ -9,6 +9,15 @@ bash scripts/install.sh
 ```
 
 The repo is private during beta. Testers need a GitHub invite before cloning.
+Tester access is non-transferable. Do not copy or redistribute the repo or
+tester package.
+
+Windows private beta:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install-windows.ps1
+```
 
 ## 2. Run
 
@@ -38,3 +47,4 @@ Press `Ctrl-C` in the terminal running NexPilot. This immediately revokes access
 - Do not expose the port to the public internet.
 - Prefer Tailscale for remote testing.
 - Close the process when finished.
+- Do not copy, upload, mirror, or redistribute this private beta.

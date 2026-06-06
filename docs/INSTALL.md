@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- macOS or Linux
+- macOS, Linux, or Windows private beta
 - Python 3.9+
 - A phone on the same Wi-Fi, or a private network path such as Tailscale
 
@@ -21,6 +21,18 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
+
+## Windows Private Beta
+
+PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install-windows.ps1
+.\.venv\Scripts\nexpilot.exe --lan
+```
+
+Windows terminal support uses ConPTY through optional `pywinpty`.
 
 ## Run For Same-Computer Testing
 

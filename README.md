@@ -14,9 +14,13 @@ This public trial is intentionally local-first:
 
 ## Status
 
-Private beta package. macOS and Linux are supported for the interactive terminal
-path. Windows support is planned after the ConPTY agent is split from the
-internal codebase.
+Private beta package. macOS and Linux are supported through POSIX PTY. Windows
+is supported as a private beta path through ConPTY with optional `pywinpty`.
+
+This release includes terminal reconnect, recent output replay, heartbeat,
+mobile viewport handling, input/output batching, large paste chunking, and
+copy/paste/clear controls. It is closer to a Termius-style terminal baseline,
+but it is not yet full Termius feature parity.
 
 ## Quick Start
 
@@ -41,6 +45,14 @@ nexpilot --lan
 Open the printed URL on your phone. Keep the token private. Anyone with that URL
 can control the shell while the agent is running.
 
+Windows private beta:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install-windows.ps1
+.\.venv\Scripts\nexpilot.exe --lan
+```
+
 ## Safer First Run
 
 For first-time testing on the same computer:
@@ -60,6 +72,8 @@ This binds to `127.0.0.1` only. For phone testing on the same Wi-Fi, run
 - Do not expose this directly to the public internet.
 - Prefer Tailscale, WireGuard, or another private network for remote use.
 - Stop the process to revoke access immediately.
+- This private beta is non-transferable. Do not copy, mirror, upload, or
+  redistribute it.
 
 Read [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) before sharing this with
 testers.
@@ -67,11 +81,18 @@ testers.
 For a shorter tester handoff, use
 [docs/TESTER_QUICKSTART.md](docs/TESTER_QUICKSTART.md).
 
+For Windows, read [docs/WINDOWS_BETA.md](docs/WINDOWS_BETA.md).
+
+For terminal scope, read [docs/TERMINAL_GRADE_BETA.md](docs/TERMINAL_GRADE_BETA.md).
+
+For copy/redistribution boundaries, read
+[docs/BETA_TESTER_TERMS.md](docs/BETA_TESTER_TERMS.md).
+
 ## What Is Not Included
 
 The private M4ControlCenter, Kai task system, internal NexDesk hub, production
-Cloudflare Access settings, Tailscale auth keys, databases, logs, and Rain's
-private device IDs are not part of this package.
+Cloudflare Access settings, Tailscale auth keys, public cloud relay, databases,
+logs, and Rain's private device IDs are not part of this package.
 
 ## Development Checks
 

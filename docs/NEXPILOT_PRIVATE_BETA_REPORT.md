@@ -452,12 +452,22 @@ bash scripts/publish-github.sh
 
 ## 9. Roadmap
 
+已完成於 0.2.0：
+
+- Terminal reconnect：手機或瀏覽器斷線後，同一 session 可在 idle window 內重連。
+- 最近 terminal output replay：重連後會回放 bounded in-memory history。
+- Heartbeat / stale connection handling。
+- input/output batching 與大貼上 chunking。
+- Copy / Paste / Clear 控制。
+- Windows private beta ConPTY path：`scripts/install-windows.ps1` + optional `pywinpty`。
+- 每位 tester 專屬 tarball：`bash scripts/make-tester-package.sh TESTER_ID`。
+
 短期：
 
 - 實體手機 PWA smoke。
 - 把 xterm.js assets vendored 進 repo，移除 CDN 依賴。
-- 補 Windows ConPTY public path。
-- 補 native installer 或一鍵 zip。
+- Windows 實機 ConPTY smoke。
+- native signed installer 或一鍵 zip。
 
 中期：
 
@@ -465,6 +475,7 @@ bash scripts/publish-github.sh
 - read-only / confirm-before-enter mode。
 - session recording 可選項。
 - 更好的手機鍵盤列、複製貼上、快捷鍵。
+- signed macOS pkg / Windows MSI。
 
 長期：
 
@@ -479,7 +490,7 @@ bash scripts/publish-github.sh
 可以說：
 
 ```text
-NexPilot private beta lets you run a small local agent on your Mac/Linux computer and control that shell from your phone over same Wi-Fi or Tailscale.
+NexPilot private beta lets you run a small local agent on your Mac/Linux/Windows-beta computer and control that shell from your phone over same Wi-Fi or your own Tailscale.
 ```
 
 不要說：
@@ -497,5 +508,5 @@ NexPilot private beta lets you run a small local agent on your Mac/Linux compute
 不要說：
 
 ```text
-支援 Windows。
+可以防止拿到 source 的人技術上複製。
 ```

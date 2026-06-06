@@ -41,6 +41,9 @@ production relay settings.
 The beta server does not persist terminal transcripts. Your shell history and
 any files you touch remain governed by your own computer and shell settings.
 
+The server keeps a bounded in-memory replay buffer for terminal reconnect. The
+buffer is not written to disk and is cleared when the process exits.
+
 ## Revocation
 
 Stop the `nexpilot` process to revoke access immediately. Restarting without
@@ -48,8 +51,12 @@ Stop the `nexpilot` process to revoke access immediately. Restarting without
 
 ## Known Limits
 
-- One terminal session per browser connection.
-- macOS/Linux PTY support only in this public beta.
+- Terminal reconnect keeps a detached shell alive only for the configured idle
+  window.
+- Windows support is private beta through optional ConPTY dependencies.
 - No multi-user roles.
 - No public relay service.
 - No end-to-end encrypted cloud relay.
+- Source access cannot technically prevent a recipient from copying the code;
+  private beta distribution relies on non-transferable terms, private invites,
+  per-tester packages, and checksums.

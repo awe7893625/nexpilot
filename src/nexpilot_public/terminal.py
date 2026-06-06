@@ -1,19 +1,21 @@
-"""PTY-backed terminal session for the local NexPilot trial agent."""
+"""Terminal session backends for the local NexPilot trial agent."""
 
 from __future__ import annotations
 
 import asyncio
-import fcntl
 import os
-import pty
-import select
 import shlex
 import signal
-import struct
-import termios
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Awaitable, Callable
+
+if os.name != "nt":
+    import fcntl
+    import pty
+    import select
+    import struct
+    import termios
 
 
 OutputSender = Callable[[str], Awaitable[None]]
@@ -28,15 +30,32 @@ class TerminalConfig:
 
 
 class PtyUnsupportedError(RuntimeError):
-    """Raised when the current platform does not support POSIX PTY."""
+    """Raised when the current platform does not support an interactive PTY."""
 
 
-class PtyTerminalSession:
-    """Owns one local interactive shell connected to a WebSocket."""
+class BaseTerminalSession:
+    def start(self) -> None:
+        raise NotImplementedError
+
+    async def pump_output(self) -> None:
+        raise NotImplementedError
+
+    def write(self, data: str) -> None:
+        raise NotImplementedError
+
+    def resize(self, cols: int, rows: int) -> None:
+        raise NotImplementedError
+
+    async def close(self) -> None:
+        raise NotImplementedError
+
+
+class PosixPtyTerminalSession(BaseTerminalSession):
+    """Owns one POSIX interactive shell connected to a WebSocket."""
 
     def __init__(self, config: TerminalConfig, send_output: OutputSender):
         if os.name == "nt":
-            raise PtyUnsupportedError("Windows ConPTY support is not in this public beta")
+            raise PtyUnsupportedError("POSIX PTY backend is unavailable on Windows")
         self.config = config
         self.send_output = send_output
         self.pid: int | None = None
@@ -90,7 +109,9 @@ class PtyTerminalSession:
             return
         if not data:
             return
-        os.write(self.fd, data.encode())
+        encoded = data.encode()
+        for offset in range(0, len(encoded), 4096):
+            os.write(self.fd, encoded[offset : offset + 4096])
 
     def resize(self, cols: int, rows: int) -> None:
         if self.fd is None:
@@ -123,6 +144,113 @@ class PtyTerminalSession:
                 os.kill(pid, signal.SIGTERM)
             except ProcessLookupError:
                 pass
+
+
+class WindowsConPtyTerminalSession(BaseTerminalSession):
+    """Windows ConPTY backend through pywinpty.
+
+    This backend is intentionally optional so macOS/Linux testers do not need
+    Windows-only wheels. Windows beta testers install it with the `windows`
+    extra.
+    """
+
+    def __init__(self, config: TerminalConfig, send_output: OutputSender):
+        if os.name != "nt":
+            raise PtyUnsupportedError("Windows ConPTY backend is only available on Windows")
+        try:
+            from winpty import PtyProcess
+        except Exception as exc:
+            raise PtyUnsupportedError(
+                "Windows terminal support requires pywinpty. "
+                'Install with: python -m pip install -e ".[windows]"'
+            ) from exc
+        self.config = config
+        self.send_output = send_output
+        self._pty_process_cls = PtyProcess
+        self.process = None
+        self._closed = asyncio.Event()
+
+    def start(self) -> None:
+        cwd = self.config.cwd.expanduser().resolve()
+        if not cwd.exists() or not cwd.is_dir():
+            raise RuntimeError(f"Working directory does not exist: {cwd}")
+        shell = self.config.shell or os.environ.get("COMSPEC") or "powershell.exe"
+        self.process = self._pty_process_cls.spawn(
+            shell,
+            cwd=str(cwd),
+            dimensions=(self.config.cols, self.config.rows),
+        )
+
+    async def pump_output(self) -> None:
+        if self.process is None:
+            return
+        while not self._closed.is_set():
+            try:
+                data = await asyncio.to_thread(self._read_once)
+            except EOFError:
+                break
+            except OSError:
+                break
+            if not data:
+                await asyncio.sleep(0.01)
+                continue
+            await self.send_output(str(data))
+
+    def _read_once(self) -> str:
+        if self.process is None:
+            return ""
+        try:
+            return self.process.read(8192)
+        except TypeError:
+            return self.process.read()
+
+    def write(self, data: str) -> None:
+        if self.process is None or self._closed.is_set() or not data:
+            return
+        for offset in range(0, len(data), 4096):
+            self.process.write(data[offset : offset + 4096])
+
+    def resize(self, cols: int, rows: int) -> None:
+        if self.process is None:
+            return
+        cols = max(20, min(int(cols or 100), 300))
+        rows = max(8, min(int(rows or 32), 120))
+        for method_name, args in (
+            ("setwinsize", (rows, cols)),
+            ("set_size", (cols, rows)),
+            ("resize", (cols, rows)),
+        ):
+            method = getattr(self.process, method_name, None)
+            if method is not None:
+                method(*args)
+                return
+
+    async def close(self) -> None:
+        if self._closed.is_set():
+            return
+        self._closed.set()
+        process = self.process
+        self.process = None
+        if process is None:
+            return
+        for method_name in ("terminate", "kill", "close"):
+            method = getattr(process, method_name, None)
+            if method is None:
+                continue
+            try:
+                method()
+                break
+            except Exception:
+                continue
+
+
+def create_terminal_session(config: TerminalConfig, send_output: OutputSender) -> BaseTerminalSession:
+    if os.name == "nt":
+        return WindowsConPtyTerminalSession(config, send_output)
+    return PosixPtyTerminalSession(config, send_output)
+
+
+PtyTerminalSession = PosixPtyTerminalSession
 
 
 def _process_exited(pid: int) -> bool:
