@@ -87,7 +87,9 @@ class ManagedTerminalSession:
         try:
             await self.terminal.pump_output()
         except Exception as exc:
-            await self._broadcast({"type": "error", "error": f"terminal output failed: {exc}"})
+            await self._broadcast(
+                {"type": "error", "error": f"terminal output failed: {exc}"}
+            )
         finally:
             self.closed = True
             await self._broadcast({"type": "exit", "reason": "terminal exited"})
@@ -148,6 +150,9 @@ def make_app(config: ServerConfig) -> FastAPI:
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         response.headers.setdefault("Cache-Control", "no-store")
+        # A04: anti-clickjacking headers
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
         return response
 
     @app.get("/")
@@ -179,6 +184,10 @@ def make_app(config: ServerConfig) -> FastAPI:
 
     @app.websocket("/ws/terminal")
     async def terminal_ws(websocket: WebSocket):
+        # A03: reject disallowed origins before any token check
+        if not websocket_origin_allowed(websocket, config):
+            await websocket.close(code=1008, reason="forbidden origin")
+            return
         if not websocket_token_valid(websocket, config):
             await websocket.close(code=1008, reason="unauthorized")
             return
@@ -214,7 +223,9 @@ def make_app(config: ServerConfig) -> FastAPI:
             }
         )
         if session.history:
-            await websocket.send_json({"type": "output", "data": "".join(session.history), "replay": True})
+            await websocket.send_json(
+                {"type": "output", "data": "".join(session.history), "replay": True}
+            )
 
         async def sender() -> None:
             while True:
@@ -229,17 +240,25 @@ def make_app(config: ServerConfig) -> FastAPI:
                 message = await websocket.receive_json()
                 msg_type = message.get("type")
                 if msg_type == "input":
-                    session.write(str(message.get("data") or ""))
+                    # A09: cap a single input message to prevent paste-bomb DoS
+                    data = str(message.get("data") or "")[:65536]
+                    session.write(data)
                     await websocket.send_json({"type": "ack", "id": message.get("id")})
                 elif msg_type == "resize":
-                    session.resize(int(message.get("cols") or 100), int(message.get("rows") or 32))
+                    # A06: safe-int conversion with defaults — non-numeric values won't crash
+                    session.resize(
+                        _safe_int(message.get("cols"), 100),
+                        _safe_int(message.get("rows"), 32),
+                    )
                 elif msg_type == "ping":
                     await websocket.send_json({"type": "pong"})
                 elif msg_type == "close_session":
                     await session.close("client closed session")
                     break
                 else:
-                    await websocket.send_json({"type": "error", "error": f"unsupported message: {msg_type}"})
+                    await websocket.send_json(
+                        {"type": "error", "error": f"unsupported message: {msg_type}"}
+                    )
         except WebSocketDisconnect:
             pass
         finally:
@@ -249,7 +268,9 @@ def make_app(config: ServerConfig) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
-        return JSONResponse({"ok": False, "error": exc.detail}, status_code=exc.status_code)
+        return JSONResponse(
+            {"ok": False, "error": exc.detail}, status_code=exc.status_code
+        )
 
     return app
 
@@ -275,6 +296,41 @@ def websocket_token_valid(websocket: WebSocket, config: ServerConfig) -> bool:
     return bool(provided and secrets.compare_digest(provided, config.token))
 
 
+def _allowed_origins(config: ServerConfig) -> set[str]:
+    """Return the set of origins that are permitted to open a WebSocket.
+
+    A03: limit origins to localhost / 127.0.0.1 and, only when the server is
+    bound to 0.0.0.0, also the actual LAN IP.  Unknown/null origins are blocked.
+    """
+    port = config.port
+    allowed = {
+        f"http://localhost:{port}",
+        f"http://127.0.0.1:{port}",
+    }
+    if config.host == "0.0.0.0":
+        lan = _lan_ip()
+        if lan != "127.0.0.1":
+            allowed.add(f"http://{lan}:{port}")
+    return allowed
+
+
+def websocket_origin_allowed(websocket: WebSocket, config: ServerConfig) -> bool:
+    """A03: reject WebSocket connections from unlisted origins."""
+    origin = websocket.headers.get("origin") or ""
+    if not origin:
+        # No Origin header — only allow when bound to loopback
+        return config.host not in {"0.0.0.0", "::"}
+    return origin in _allowed_origins(config)
+
+
+def _safe_int(value: Any, default: int) -> int:
+    """A06: convert *value* to int safely; return *default* on any failure."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _clean_session_id(raw: str | None) -> str:
     if raw and SESSION_ID_PATTERN.fullmatch(raw):
         return raw
@@ -290,7 +346,9 @@ async def _prune_closed_sessions(sessions: dict[str, ManagedTerminalSession]) ->
 def _default_shell() -> str:
     if os.name == "nt":
         return os.environ.get("COMSPEC", "powershell.exe")
-    return os.environ.get("SHELL", "/bin/zsh" if Path("/bin/zsh").exists() else "/bin/sh")
+    return os.environ.get(
+        "SHELL", "/bin/zsh" if Path("/bin/zsh").exists() else "/bin/sh"
+    )
 
 
 def _lan_ip() -> str:
@@ -310,8 +368,12 @@ def build_config(args: argparse.Namespace) -> ServerConfig:
     token = args.token or os.environ.get("NEXPILOT_TOKEN") or secrets.token_urlsafe(24)
     shell = args.shell or os.environ.get("NEXPILOT_SHELL") or _default_shell()
     cwd = Path(args.cwd or os.environ.get("NEXPILOT_CWD") or Path.home()).expanduser()
-    idle_timeout = int(args.idle_timeout or os.environ.get("NEXPILOT_IDLE_TIMEOUT") or 900)
-    history_limit = int(args.history_limit or os.environ.get("NEXPILOT_HISTORY_LIMIT") or 200_000)
+    idle_timeout = int(
+        args.idle_timeout or os.environ.get("NEXPILOT_IDLE_TIMEOUT") or 900
+    )
+    history_limit = int(
+        args.history_limit or os.environ.get("NEXPILOT_HISTORY_LIMIT") or 200_000
+    )
     return ServerConfig(
         host=host,
         port=port,
@@ -327,12 +389,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the NexPilot local trial agent.")
     parser.add_argument("--host", help="Bind host. Default: 127.0.0.1")
     parser.add_argument("--port", type=int, help="Bind port. Default: 8765")
-    parser.add_argument("--lan", action="store_true", help="Bind 0.0.0.0 for same-LAN phone access.")
+    parser.add_argument(
+        "--lan", action="store_true", help="Bind 0.0.0.0 for same-LAN phone access."
+    )
     parser.add_argument("--token", help="Access token. Default: generated at startup.")
     parser.add_argument("--shell", help="Shell command. Default: current user shell.")
-    parser.add_argument("--cwd", help="Initial working directory. Default: home directory.")
-    parser.add_argument("--idle-timeout", type=int, help="Seconds to keep detached shells alive. Default: 900.")
-    parser.add_argument("--history-limit", type=int, help="Per-session replay history characters. Default: 200000.")
+    parser.add_argument(
+        "--cwd", help="Initial working directory. Default: home directory."
+    )
+    parser.add_argument(
+        "--idle-timeout",
+        type=int,
+        help="Seconds to keep detached shells alive. Default: 900.",
+    )
+    parser.add_argument(
+        "--history-limit",
+        type=int,
+        help="Per-session replay history characters. Default: 200000.",
+    )
     return parser.parse_args(argv)
 
 
@@ -349,7 +423,14 @@ def print_startup(config: ServerConfig) -> None:
     print("")
     print(f"Open: {local_url}")
     if config.host == "0.0.0.0":
-        print(f"Phone on same Wi-Fi: http://{_lan_ip()}:{config.port}/?token={config.token}")
+        print(
+            f"Phone on same Wi-Fi: http://{_lan_ip()}:{config.port}/?token={config.token}"
+        )
+        print("")
+        # A10: warn the user that --lan exposes the shell on all interfaces over plain HTTP
+        print("WARNING: --lan mode exposes this shell on ALL network interfaces.")
+        print("         The token travels in plaintext over HTTP.")
+        print("         Use Tailscale or a trusted private network only.")
     print("")
     print("Keep this URL private. Stop this process to revoke access.")
     print("")
@@ -360,7 +441,11 @@ def main(argv: list[str] | None = None) -> None:
     config = build_config(args)
     app = make_app(config)
     print_startup(config)
-    uvicorn.run(app, host=config.host, port=config.port, log_level="info")
+    # A02: disable access logs so ?token=SECRET is never written to disk.
+    # log_level="warning" keeps error/warning output for diagnostics.
+    uvicorn.run(
+        app, host=config.host, port=config.port, log_level="warning", access_log=False
+    )
 
 
 if __name__ == "__main__":

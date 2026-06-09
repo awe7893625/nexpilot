@@ -39,11 +39,18 @@ function setStatus(text, mode = '') {
 
 function getToken() {
   const url = new URL(window.location.href)
-  const token = url.searchParams.get('token') || sessionStorage.getItem(TOKEN_KEY) || ''
+  const urlToken = url.searchParams.get('token') || ''
+  const token = urlToken || sessionStorage.getItem(TOKEN_KEY) || ''
   if (token) {
     sessionStorage.setItem(TOKEN_KEY, token)
     tokenInput.value = token
     tokenPanel.hidden = true
+  }
+  // A01: strip ?token= from the address bar immediately after reading it so the
+  // secret does not persist in browser history, bookmarks, or proxy logs.
+  if (urlToken) {
+    url.searchParams.delete('token')
+    window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''))
   }
   return token
 }
