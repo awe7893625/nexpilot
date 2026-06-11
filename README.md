@@ -4,6 +4,15 @@ NexPilot is a phone-first terminal cockpit. Run a small agent on your computer,
 open the printed URL on your phone, and control a local shell through the mobile
 browser.
 
+## Screenshots
+
+| Desktop | Mobile |
+|---|---|
+| <img src="docs/images/desktop.png" alt="NexPilot desktop cockpit" width="100%"> | <img src="docs/images/mobile.png" alt="NexPilot mobile cockpit" width="260"> |
+
+The same cockpit adapts from a wide desktop terminal to a phone-sized viewport, with
+reconnect, output replay, heartbeat, and copy/paste/clear controls built in.
+
 This public trial is intentionally local-first:
 
 - No Rain/M4/Kai/NexDesk backend is required.
