@@ -1,18 +1,14 @@
-# Tester Quickstart
+# Quick Start
 
 ## 1. Install
 
 ```bash
-git clone https://github.com/awe7893625/nexpilot-private-beta.git
-cd nexpilot-private-beta
+git clone https://github.com/awe7893625/nexpilot.git
+cd nexpilot
 bash scripts/install.sh
 ```
 
-The repo is private during beta. Testers need a GitHub invite before cloning.
-Tester access is non-transferable. Do not copy or redistribute the repo or
-tester package.
-
-Windows private beta:
+Windows:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -21,13 +17,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 ## 2. Run
 
-For same-computer testing:
+For same-computer use:
 
 ```bash
 bash scripts/run-local.sh
 ```
 
-For phone testing on the same Wi-Fi or Tailscale:
+For phone use on the same Wi-Fi or Tailscale:
 
 ```bash
 bash scripts/run-lan.sh
@@ -45,6 +41,5 @@ Press `Ctrl-C` in the terminal running NexPilot. This immediately revokes access
 
 - Do not run as `root` or administrator.
 - Do not expose the port to the public internet.
-- Prefer Tailscale for remote testing.
+- Prefer Tailscale for remote use.
 - Close the process when finished.
-- Do not copy, upload, mirror, or redistribute this private beta.

@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nexpilot-public"
 version = "0.2.0"
-description = "Local-first phone terminal cockpit for private NexPilot beta testers."
+description = "Local-first, phone-first terminal cockpit. Control your computer's shell from your phone browser."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "Private beta evaluation only" }
+license = { text = "MIT" }
 authors = [{ name = "Rain" }]
 dependencies = [
   "fastapi>=0.110",

@@ -1,4 +1,4 @@
-"""Local-first NexPilot public trial server."""
+"""Local-first NexPilot server."""
 
 from __future__ import annotations
 
@@ -139,7 +139,7 @@ class ManagedTerminalSession:
 
 
 def make_app(config: ServerConfig) -> FastAPI:
-    app = FastAPI(title="NexPilot Public Trial", version=__version__)
+    app = FastAPI(title="NexPilot", version=__version__)
     app.state.config = config
     app.state.sessions = {}
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -414,7 +414,7 @@ def print_startup(config: ServerConfig) -> None:
     display_host = "127.0.0.1" if config.host in {"0.0.0.0", "::"} else config.host
     local_url = f"http://{display_host}:{config.port}/?token={config.token}"
     print("")
-    print("NexPilot public trial agent")
+    print("NexPilot agent")
     print(f"  Version: {__version__}")
     print(f"  Bind:    {config.host}:{config.port}")
     print(f"  Shell:   {config.shell}")

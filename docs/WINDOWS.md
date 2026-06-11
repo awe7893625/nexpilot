@@ -1,6 +1,6 @@
-# Windows Private Beta
+# Windows
 
-Windows support is now a private beta path. It uses ConPTY through `pywinpty`.
+Windows is supported. It uses ConPTY through `pywinpty`.
 
 ## Install
 
@@ -30,7 +30,7 @@ Included:
 - PowerShell or `cmd.exe` through Windows ConPTY.
 - Same token gate as macOS/Linux.
 - Same reconnect window and terminal history replay.
-- Same Wi-Fi/LAN or tester-owned Tailscale access.
+- Same Wi-Fi/LAN or your own Tailscale access.
 
 Not included yet:
 

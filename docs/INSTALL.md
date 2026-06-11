@@ -2,15 +2,15 @@
 
 ## Requirements
 
-- macOS, Linux, or Windows private beta
+- macOS, Linux, or Windows
 - Python 3.9+
 - A phone on the same Wi-Fi, or a private network path such as Tailscale
 
 ## Install From Source
 
 ```bash
-git clone https://github.com/awe7893625/nexpilot-private-beta.git
-cd nexpilot-private-beta
+git clone https://github.com/awe7893625/nexpilot.git
+cd nexpilot
 bash scripts/install.sh
 ```
 
@@ -22,7 +22,7 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Windows Private Beta
+## Windows
 
 PowerShell:
 

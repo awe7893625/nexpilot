@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 OWNER="${GITHUB_OWNER:-awe7893625}"
-REPO="${GITHUB_REPO:-nexpilot-private-beta}"
+REPO="${GITHUB_REPO:-nexpilot}"
 FULL_NAME="$OWNER/$REPO"
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -22,21 +22,21 @@ fi
 bash scripts/prepublish.sh
 
 if gh repo view "$FULL_NAME" >/dev/null 2>&1; then
-  echo "Using existing private beta repo: $FULL_NAME"
+  echo "Using existing public repo: $FULL_NAME"
   if ! git remote get-url origin >/dev/null 2>&1; then
     git remote add origin "https://github.com/$FULL_NAME.git"
   fi
   git push -u origin main
 else
-  echo "Creating private GitHub repo: $FULL_NAME"
+  echo "Creating public GitHub repo: $FULL_NAME"
   gh repo create "$FULL_NAME" \
-    --private \
-    --description "NexPilot private beta: local-first phone terminal cockpit" \
+    --public \
+    --description "local-first phone terminal cockpit" \
     --source "$ROOT" \
     --remote origin \
     --push
 fi
 
 echo
-echo "Published private beta repo:"
+echo "Published public repo:"
 echo "https://github.com/$FULL_NAME"

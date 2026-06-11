@@ -11,14 +11,11 @@ if [[ -f scripts/review-gate.sh ]]; then
   required_files=(
     README.md
     SECURITY.md
-    docs/TESTER_QUICKSTART.md
-    docs/BETA_TESTER_TERMS.md
-    docs/CLOUD_RELAY_SECURITY_SPEC.md
-    docs/NEXPILOT_PRIVATE_BETA_REPORT.md
-    docs/NEXPILOT_INTRANET_CONNECTION_REPORT.md
-    docs/REVIEW_GATE.md
-    docs/TERMINAL_GRADE_BETA.md
-    docs/WINDOWS_BETA.md
+    LICENSE
+    docs/INSTALL.md
+    docs/QUICKSTART.md
+    docs/WINDOWS.md
+    docs/SECURITY_MODEL.md
   )
   for path in "${required_files[@]}"; do
     if [[ ! -f "$path" ]]; then

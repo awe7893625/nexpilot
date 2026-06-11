@@ -14,4 +14,4 @@ python3 -m pip uninstall nexpilot-public
 ```
 
 Stop any running `nexpilot` process. No LaunchAgent, service, database, or
-background daemon is installed by this public trial package.
+background daemon is installed by this package.

@@ -1,8 +1,8 @@
-# NexPilot Public Trial
+# NexPilot
 
 NexPilot is a phone-first terminal cockpit. Run a small agent on your computer,
-open the printed URL on your phone, and control a local shell through the mobile
-browser.
+open the printed URL on your phone, and control a local shell from the mobile
+browser. It is local-first, open source, and free to use.
 
 ## Screenshots
 
@@ -13,29 +13,30 @@ browser.
 The same cockpit adapts from a wide desktop terminal to a phone-sized viewport, with
 reconnect, output replay, heartbeat, and copy/paste/clear controls built in.
 
-This public trial is intentionally local-first:
+## Why It's Safe
 
-- No Rain/M4/Kai/NexDesk backend is required.
-- No production token, database, device ID, or private relay is included.
-- The agent runs on the tester's own computer.
+NexPilot is intentionally local-first:
+
+- No proprietary backend, cloud account, or sign-up is required.
+- No token, database, device ID, or relay server is bundled.
+- The agent runs entirely on your own computer.
 - Remote use should go through a private network such as Tailscale, not the open
   public internet.
 
-## Status
+## Features
 
-Private beta package. macOS and Linux are supported through POSIX PTY. Windows
-is supported as a private beta path through ConPTY with optional `pywinpty`.
-
-This release includes terminal reconnect, recent output replay, heartbeat,
-mobile viewport handling, input/output batching, large paste chunking, and
-copy/paste/clear controls. It is closer to a Termius-style terminal baseline,
-but it is not yet full Termius feature parity.
+- Phone-first responsive cockpit UI (desktop and mobile).
+- Terminal reconnect with recent-output replay and heartbeat.
+- Input/output batching and large-paste chunking for smooth typing.
+- Copy / paste / clear controls.
+- Token-gated terminal access.
+- macOS and Linux via POSIX PTY; Windows via ConPTY (optional `pywinpty`).
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/awe7893625/nexpilot-private-beta.git
-cd nexpilot-private-beta
+git clone https://github.com/awe7893625/nexpilot.git
+cd nexpilot
 bash scripts/install.sh
 bash scripts/run-lan.sh
 ```
@@ -43,18 +44,18 @@ bash scripts/run-lan.sh
 Manual install:
 
 ```bash
-git clone https://github.com/awe7893625/nexpilot-private-beta.git
-cd nexpilot-private-beta
+git clone https://github.com/awe7893625/nexpilot.git
+cd nexpilot
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 nexpilot --lan
 ```
 
-Open the printed URL on your phone. Keep the token private. Anyone with that URL
+Open the printed URL on your phone. Keep the token private — anyone with that URL
 can control the shell while the agent is running.
 
-Windows private beta:
+Windows:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -64,13 +65,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 ## Safer First Run
 
-For first-time testing on the same computer:
+For first-time use on the same computer:
 
 ```bash
 nexpilot
 ```
 
-This binds to `127.0.0.1` only. For phone testing on the same Wi-Fi, run
+This binds to `127.0.0.1` only. For phone use on the same Wi-Fi, run
 `nexpilot --lan`.
 
 ## Security Basics
@@ -81,27 +82,16 @@ This binds to `127.0.0.1` only. For phone testing on the same Wi-Fi, run
 - Do not expose this directly to the public internet.
 - Prefer Tailscale, WireGuard, or another private network for remote use.
 - Stop the process to revoke access immediately.
-- This private beta is non-transferable. Do not copy, mirror, upload, or
-  redistribute it.
 
-Read [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) before sharing this with
-testers.
+Read [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) for the full security model.
 
-For a shorter tester handoff, use
-[docs/TESTER_QUICKSTART.md](docs/TESTER_QUICKSTART.md).
+## Docs
 
-For Windows, read [docs/WINDOWS_BETA.md](docs/WINDOWS_BETA.md).
-
-For terminal scope, read [docs/TERMINAL_GRADE_BETA.md](docs/TERMINAL_GRADE_BETA.md).
-
-For copy/redistribution boundaries, read
-[docs/BETA_TESTER_TERMS.md](docs/BETA_TESTER_TERMS.md).
-
-## What Is Not Included
-
-The private M4ControlCenter, Kai task system, internal NexDesk hub, production
-Cloudflare Access settings, Tailscale auth keys, public cloud relay, databases,
-logs, and Rain's private device IDs are not part of this package.
+- [Install guide](docs/INSTALL.md)
+- [Quick start](docs/QUICKSTART.md)
+- [Windows](docs/WINDOWS.md)
+- [Uninstall](docs/UNINSTALL.md)
+- [Security model](docs/SECURITY_MODEL.md)
 
 ## Development Checks
 
@@ -117,18 +107,6 @@ With a local server running on `127.0.0.1:8765` and token `test-token`:
 python3 scripts/smoke-terminal.py --url 'ws://127.0.0.1:8765/ws/terminal?token=test-token'
 ```
 
-## Publish To GitHub
-
-This project should be pushed as a private beta first:
-
-```bash
-bash scripts/publish-github.sh
-```
-
-The script refuses to continue if `gh` is not authenticated, reruns the
-prepublish gate, creates `awe7893625/nexpilot-private-beta` as a private repo if
-needed, and pushes `main`.
-
 ## License
 
-Private beta evaluation only. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Free to use, modify, and share.

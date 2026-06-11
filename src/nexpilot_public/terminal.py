@@ -149,8 +149,8 @@ class PosixPtyTerminalSession(BaseTerminalSession):
 class WindowsConPtyTerminalSession(BaseTerminalSession):
     """Windows ConPTY backend through pywinpty.
 
-    This backend is intentionally optional so macOS/Linux testers do not need
-    Windows-only wheels. Windows beta testers install it with the `windows`
+    This backend is intentionally optional so macOS/Linux users do not need
+    Windows-only wheels. Windows users install it with the `windows`
     extra.
     """
 
